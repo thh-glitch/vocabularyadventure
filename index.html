@@ -3,22 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Word Dungeon: Mobile Fix</title>
+    <title>Word Dungeon: Ultimate</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #1a1a20;
-            --panel-color: #2d2d38;
+            --bg-color: #121214;
+            --card-bg: #1e1e24;
             --text-main: #fff;
-            --syn-color: #66bb6a;
-            --ant-color: #ef5350;
-            --boss-color: #ab47bc;
-            --accent: #fbc02d;
+            --syn-color: #4caf50;
+            --ant-color: #f44336;
+            --boss-color: #9c27b0;
+            --accent: #ffeb3b;
         }
 
-        * {
-            box-sizing: border-box; /* 確保邊距計算正確 */
-        }
+        * { box-sizing: border-box; }
 
         body {
             background-color: #000;
@@ -26,220 +24,211 @@
             color: var(--text-main);
             margin: 0;
             padding: 0;
-            /* 允許頁面內容過長時滾動，防止按鈕被切掉 */
-            height: 100dvh; 
+            height: 100dvh;
             display: flex;
             justify-content: center;
-            align-items: flex-start; /* 改為從頂部開始對齊 */
+            align-items: center;
+            overflow: hidden;
+            touch-action: manipulation;
         }
 
         #game-container {
             width: 100%;
             max-width: 500px;
-            height: 100dvh; /* 適應手機瀏覽器高度 */
+            height: 100%;
             background-color: var(--bg-color);
             display: flex;
             flex-direction: column;
             position: relative;
-            overflow-y: auto; /* 關鍵修改：允許垂直滾動 */
-            -webkit-overflow-scrolling: touch; /* 讓 iOS 滾動更順滑 */
+            transition: background 0.5s;
         }
 
-        /* 頂部資訊欄 - 壓縮高度 */
+        /* --- 1. HUD (頂部資訊) --- */
         .hud {
-            flex-shrink: 0; /* 防止被壓縮 */
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: #222;
-            padding: 8px 10px;
-            border-bottom: 2px solid #555;
-            font-size: 10px; /* 字體稍微縮小 */
-            height: 40px; 
-            position: sticky; /* 固定在頂部 */
+            padding: 10px 15px;
+            background: rgba(0,0,0,0.3);
+            font-size: 10px;
+            height: 50px;
+            width: 100%;
+            position: absolute; /* 懸浮在最上方 */
             top: 0;
+            left: 0;
             z-index: 10;
         }
 
         .hp-bar-outer {
             width: 80px;
             height: 10px;
-            background: #555;
+            background: #333;
             border: 1px solid #fff;
+            margin-left: 5px;
             display: inline-block;
             vertical-align: middle;
-            margin-left: 5px;
         }
-
         .hp-bar-inner {
             width: 100%;
             height: 100%;
-            background: #ff3333;
+            background: #f44336;
             transition: width 0.3s;
         }
 
-        /* 戰鬥主畫面 - 彈性調整 */
-        .battle-stage {
-            flex-grow: 1; /* 佔據剩餘空間 */
-            min-height: 200px; /* 確保最小高度 */
-            background: #15151a;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            background-image: radial-gradient(circle, #333 1px, transparent 1px);
-            background-size: 20px 20px;
-            padding: 10px;
+        /* --- 2. Boss 專屬頂部血條 --- */
+        #boss-overlay-ui {
+            position: absolute;
+            top: 50px; /* 在 HUD 下方 */
+            left: 0;
+            width: 100%;
+            padding: 5px 15px;
+            background: rgba(0,0,0,0.8);
+            display: none; /* 預設隱藏 */
+            z-index: 9;
+            animation: slideDown 0.5s;
         }
+        @keyframes slideDown { from {transform: translateY(-20px); opacity:0;} to {transform: translateY(0); opacity:1;} }
 
-        /* Boss 模式特效 */
-        .boss-mode .battle-stage {
-            background: #2a002a;
-            border: 2px solid var(--boss-color);
-        }
-
-        /* 縮小怪物圖示以節省空間 */
-        .monster-emoji {
-            font-size: 60px; /* 從 80px 縮小 */
-            margin-bottom: 5px;
-            filter: drop-shadow(0 0 10px rgba(255,255,255,0.2));
-            transition: transform 0.2s;
-        }
-
-        .monster-word {
-            font-size: 24px; /* 稍微縮小 */
-            color: var(--accent);
-            text-transform: uppercase;
-            text-shadow: 2px 2px #000;
-            margin: 5px 0;
-            text-align: center;
-        }
-
-        .monster-sentence {
-            font-family: 'Roboto', sans-serif;
-            font-size: 15px;
-            color: #ccc;
-            background: rgba(0,0,0,0.6);
-            padding: 6px 12px;
-            border-radius: 12px;
-            margin-bottom: 5px;
-            text-align: center;
-            line-height: 1.3;
-            max-width: 95%;
-        }
-
-        .task-badge {
-            font-size: 10px;
-            padding: 4px 8px;
-            border-radius: 4px;
-            color: #000;
-            font-weight: bold;
-            text-transform: uppercase;
-            margin-top: 5px;
-        }
-
-        .boss-hp-container {
-            width: 80%;
-            height: 6px;
+        .boss-name-tag { color: var(--boss-color); font-size: 10px; margin-bottom: 5px; }
+        .boss-hp-bar-large {
+            width: 100%;
+            height: 15px;
             background: #333;
-            margin-top: 5px;
-            border-radius: 4px;
-            display: none;
+            border: 2px solid var(--boss-color);
+            box-shadow: 0 0 10px var(--boss-color);
         }
-        .boss-hp-fill {
+        .boss-hp-fill-large {
             width: 100%;
             height: 100%;
             background: var(--boss-color);
             transition: width 0.3s;
         }
 
-        /* 選項按鈕區 - 確保底部有空間 */
-        .options-grid {
-            flex-shrink: 0; /* 防止被壓縮，確保按鈕完整顯示 */
+        /* --- 3. 中央遊戲區 (緊湊佈局) --- */
+        .main-content {
+            flex-grow: 1;
             display: flex;
             flex-direction: column;
-            gap: 8px;
-            padding: 10px 15px 20px 15px; /* 底部增加 padding */
-            background: #222;
+            justify-content: center; /* 垂直置中 */
+            align-items: center;
+            padding: 20px;
+            width: 100%;
+            margin-top: 40px; /* 避開 HUD */
         }
 
-        button {
-            background-color: var(--panel-color);
-            color: white;
-            border: 2px solid #666;
+        /* 題目卡片 */
+        .question-card {
+            background: var(--card-bg);
+            border: 2px solid #444;
+            border-radius: 15px;
+            padding: 20px;
+            width: 100%;
+            text-align: center;
+            margin-bottom: 20px; /* 與按鈕的距離 */
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            transition: transform 0.2s, border-color 0.3s;
+        }
+
+        .monster-emoji { font-size: 50px; display: block; margin-bottom: 10px; }
+        .monster-word { 
+            font-size: 22px; 
+            color: var(--accent); 
+            text-transform: uppercase; 
+            margin: 10px 0; 
+            text-shadow: 2px 2px 0 #000;
+        }
+        .monster-sentence {
+            font-family: 'Roboto', sans-serif;
+            font-size: 15px;
+            color: #ccc;
+            background: rgba(0,0,0,0.4);
+            padding: 8px;
             border-radius: 8px;
+            line-height: 1.4;
+        }
+        .task-badge {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            color: #000;
+        }
+
+        /* 按鈕控制區 */
+        .controls {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        button.option-btn {
+            background: #333;
+            color: #fff;
+            border: 2px solid #555;
+            padding: 15px;
             font-family: 'Press Start 2P', cursive;
-            font-size: 14px;
-            padding: 12px; /* 稍微縮小內距 */
+            font-size: 13px;
+            border-radius: 8px;
             cursor: pointer;
             text-transform: uppercase;
-            text-align: center;
-            min-height: 44px; /* 確保手指好點擊 */
+            transition: transform 0.1s, background 0.1s;
+        }
+        button.option-btn:active { transform: scale(0.97); }
+
+        /* --- 4. 視覺狀態特效 --- */
+        .boss-mode-bg {
+            background: radial-gradient(circle at center, #2a0e2e 0%, #000 100%);
+        }
+        .boss-mode-card {
+            border-color: var(--boss-color);
+            box-shadow: 0 0 20px var(--boss-color);
         }
 
-        button:active {
-            transform: scale(0.98);
-        }
-        
-        button:disabled {
-            opacity: 0.5;
-        }
-
-        /* 反饋特效 */
-        .feedback-overlay {
-            position: absolute;
-            top: 40%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 40px;
-            font-weight: bold;
-            text-shadow: 3px 3px 0 #000;
-            pointer-events: none;
-            display: none;
+        /* 警告畫面 */
+        #warning-screen {
+            position: absolute; top:0; left:0; width:100%; height:100%;
+            background: red;
             z-index: 100;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            animation: flashWarning 0.2s infinite;
+        }
+        @keyframes flashWarning { 0%{opacity:0.8;} 50%{opacity:0.2;} 100%{opacity:0.8;} }
+        
+        .warning-text {
+            font-size: 30px; color: #000; font-weight: bold; text-align: center;
         }
 
-        .shake { animation: shake 0.4s; }
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-10px); }
-            75% { transform: translateX(10px); }
-        }
-
-        .hit-effect { animation: damage 0.2s; }
-        @keyframes damage {
-            0% { filter: brightness(1); transform: scale(1); }
-            50% { filter: brightness(5) sepia(1); transform: scale(0.9); }
-            100% { filter: brightness(1); transform: scale(1); }
-        }
-
-        /* 覆蓋層 */
-        .overlay-screen {
-            position: fixed; /* 改為 fixed 確保蓋住全螢幕 */
-            top: 0; left: 0; width: 100%; height: 100%;
+        /* 開始/結束畫面 */
+        .overlay {
+            position: fixed; top:0; left:0; width:100%; height:100%;
             background: rgba(0,0,0,0.95);
+            z-index: 200;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            z-index: 200;
             text-align: center;
             padding: 20px;
         }
-        .start-btn {
-            padding: 15px 30px;
-            font-size: 16px;
-            background: var(--syn-color);
-            border: none;
-            color: #000;
-            margin-top: 20px;
+        .big-btn {
+            padding: 15px 30px; font-size: 16px; 
+            background: var(--syn-color); border: none; color: #000; margin-top: 20px;
             animation: pulse 1.5s infinite;
+            cursor: pointer;
         }
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
+        @keyframes pulse { 0% {transform: scale(1);} 50% {transform: scale(1.05);} 100% {transform: scale(1);} }
+
+        /* 反饋文字 */
+        .feedback {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 40px; font-weight: bold; text-shadow: 3px 3px 0 #000;
+            pointer-events: none; display: none; z-index: 150;
         }
 
     </style>
@@ -247,288 +236,390 @@
 <body>
 
 <div id="game-container">
-    <div id="feedback" class="feedback-overlay">HIT!</div>
+    
+    <div id="warning-screen">
+        <div class="warning-text">⚠️ WARNING ⚠️<br>BOSS APPROACHING</div>
+    </div>
+
+    <div id="feedback" class="feedback">HIT!</div>
 
     <div class="hud">
-        <div>LV: <span id="level-num">1</span></div>
-        <div>SCORE: <span id="score-num" style="color:gold">0</span></div>
+        <div>LV: <span id="lvl">1</span></div>
+        <div>SCORE: <span id="score" style="color:gold">0</span></div>
         <div style="display:flex; align-items:center;">
             HP
-            <div class="hp-bar-outer">
-                <div class="hp-bar-inner" id="player-hp"></div>
+            <div class="hp-bar-outer"><div class="hp-bar-inner" id="hp-bar"></div></div>
+        </div>
+    </div>
+
+    <div id="boss-overlay-ui">
+        <div class="boss-name-tag">BOSS: THE GRAMMAR DRAGON</div>
+        <div class="boss-hp-bar-large"><div class="boss-hp-fill-large" id="boss-hp-fill"></div></div>
+    </div>
+
+    <div class="main-content">
+        <div class="question-card" id="q-card">
+            <span class="monster-emoji" id="m-emoji">🦇</span>
+            <h2 class="monster-word" id="m-word">WORD</h2>
+            <div class="monster-sentence" id="m-sentence">Sentence goes here.</div>
+            <div class="task-badge" id="task-badge">SYNONYM</div>
+        </div>
+
+        <div class="controls" id="options-box">
             </div>
-        </div>
     </div>
 
-    <div class="battle-stage" id="stage">
-        <div class="monster-emoji" id="m-emoji">🦇</div>
-        <div class="monster-word" id="m-word">Word</div>
-        <div class="monster-sentence" id="m-sentence">Sentence here.</div>
-        
-        <div class="boss-hp-container" id="boss-hp-bar">
-            <div class="boss-hp-fill" id="boss-hp-fill"></div>
-        </div>
-
-        <div style="flex-grow:1"></div>
-        <div class="task-badge" id="task-badge">Target</div>
-    </div>
-
-    <div class="options-grid" id="options-box">
-        </div>
 </div>
 
-<div id="start-screen" class="overlay-screen">
-    <h1 style="color:var(--accent); font-size:26px; line-height:1.5;">WORD DUNGEON<br>MOBILE</h1>
-    <p style="color:#aaa; margin-top:10px; font-size:12px;">Tap buttons to answer.<br>Turn on volume!</p>
-    <button class="start-btn" onclick="initGame()">START GAME</button>
+<div id="start-screen" class="overlay">
+    <h1 style="color:var(--accent); margin-bottom:20px;">WORD DUNGEON<br><span style="font-size:14px; color:#fff">ULTIMATE EDITION</span></h1>
+    <p style="color:#aaa; font-size:12px;">80+ Words | Boss Battles | Sound</p>
+    <button class="big-btn" onclick="startGame()">START ADVENTURE</button>
 </div>
 
-<div id="end-screen" class="overlay-screen" style="display:none;">
-    <h1 style="color:var(--ant-color)">GAME OVER</h1>
-    <p>Final Score: <span id="final-score">0</span></p>
-    <button class="start-btn" onclick="initGame()">PLAY AGAIN</button>
+<div id="end-screen" class="overlay" style="display:none;">
+    <h1 style="color:var(--ant-color)">YOU DIED</h1>
+    <p>Score: <span id="final-score">0</span></p>
+    <button class="big-btn" onclick="startGame()">TRY AGAIN</button>
 </div>
 
-<div id="win-screen" class="overlay-screen" style="display:none;">
-    <h1 style="color:gold">YOU WON!</h1>
-    <p>You mastered all words!</p>
-    <p>Score: <span id="win-score">0</span></p>
-    <button class="start-btn" onclick="initGame()">RESTART</button>
+<div id="win-screen" class="overlay" style="display:none;">
+    <h1 style="color:gold">VICTORY!</h1>
+    <p>You conquered the dungeon!</p>
+    <button class="big-btn" onclick="startGame()">PLAY AGAIN</button>
 </div>
 
 <script>
-    // --- 擴充字庫 (40 Words) ---
-    const db = [
-        // --- Antonyms (RED) ---
-        { word: "EXPENSIVE", type: "ant", answer: "Cheap", sentence: "I don't have much money. I need a ______ bag.", distractors: ["Costly", "Rich"], emoji: "🦇" },
-        { word: "DANGEROUS", type: "ant", answer: "Safe", sentence: "Don't play with fire! It is not ______.", distractors: ["Scary", "Bad"], emoji: "🦁" },
-        { word: "SIMPLE", type: "ant", answer: "Complex", sentence: "This puzzle is not ______. It is very hard.", distractors: ["Easy", "Short"], emoji: "🕷️" },
-        { word: "VICTORY", type: "ant", answer: "Defeat", sentence: "We won the game! It was a great ______.", distractors: ["Win", "Loss"], emoji: "👺" },
-        { word: "ANCIENT", type: "ant", answer: "Modern", sentence: "This phone is new and ______, not old.", distractors: ["Old", "Fresh"], emoji: "🧟" },
-        { word: "SHARP", type: "ant", answer: "Blunt", sentence: "This knife cannot cut. It is ______.", distractors: ["Pointy", "Keen"], emoji: "🦂" },
-        { word: "EMPTY", type: "ant", answer: "Full", sentence: "The glass has water inside. It is ______.", distractors: ["Hollow", "Clean"], emoji: "👻" },
-        { word: "PUNISH", type: "ant", answer: "Reward", sentence: "If you do well, I will ______ you.", distractors: ["Hit", "Scold"], emoji: "👮" },
-        { word: "ARRIVE", type: "ant", answer: "Leave", sentence: "We just got here. Please don't ______.", distractors: ["Come", "Stay"], emoji: "✈️" },
-        { word: "TIGHT", type: "ant", answer: "Loose", sentence: "These pants are too big. They are ______.", distractors: ["Small", "Fit"], emoji: "👖" },
-        { word: "FRIEND", type: "ant", answer: "Enemy", sentence: "He is not my friend. He is my ______.", distractors: ["Buddy", "Pal"], emoji: "🦹" },
-        { word: "INCREASE", type: "ant", answer: "Decrease", sentence: "Sales did not go up. They started to ______.", distractors: ["Grow", "Add"], emoji: "📉" },
-        { word: "ADMIT", type: "ant", answer: "Deny", sentence: "He did not say yes. He tried to ______ it.", distractors: ["Accept", "Allow"], emoji: "🙅" },
-        { word: "SMOOTH", type: "ant", answer: "Rough", sentence: "The road is not flat. It is very ______.", distractors: ["Soft", "Clean"], emoji: "⛰️" },
-        { word: "MEND", type: "ant", answer: "Break", sentence: "Don't fix it. Just ______ it!", distractors: ["Repair", "Sew"], emoji: "🔨" },
-        { word: "PRIVATE", type: "ant", answer: "Public", sentence: "This park is for everyone. It is ______.", distractors: ["Secret", "Closed"], emoji: "🏞️" },
-        { word: "STRENGTHEN", type: "ant", answer: "Weaken", sentence: "The illness will not make me strong. It will ______ me.", distractors: ["Power", "Build"], emoji: "🦠" },
-        { word: "TEMPORARY", type: "ant", answer: "Permanent", sentence: "This tattoo is not for a day. It is ______.", distractors: ["Short", "Brief"], emoji: "⏳" },
-        { word: "GUILTY", type: "ant", answer: "Innocent", sentence: "He did not steal the money. He is ______.", distractors: ["Bad", "Wrong"], emoji: "😇" },
-        { word: "CREATE", type: "ant", answer: "Destroy", sentence: "Don't build it. You should ______ it.", distractors: ["Make", "Form"], emoji: "💥" },
+    // --- 1. Sound System (Web Audio API) ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        // --- Synonyms (GREEN) ---
-        { word: "ENORMOUS", type: "syn", answer: "Huge", sentence: "The elephant is ______. It is very big.", distractors: ["Tiny", "Small"], emoji: "🦖" },
-        { word: "TERRIFIED", type: "syn", answer: "Scared", sentence: "He saw a ghost and was ______.", distractors: ["Brave", "Happy"], emoji: "😱" },
-        { word: "WEALTHY", type: "syn", answer: "Rich", sentence: "He has a lot of money. He is ______.", distractors: ["Poor", "Sad"], emoji: "🤑" },
-        { word: "SELECT", type: "syn", answer: "Choose", sentence: "Please ______ the best answer.", distractors: ["Refuse", "Stop"], emoji: "🦎" },
-        { word: "RESCUE", type: "syn", answer: "Save", sentence: "The fireman helped to ______ the cat.", distractors: ["Hurt", "Drop"], emoji: "⛑️" },
-        { word: "DIFFICULT", type: "syn", answer: "Hard", sentence: "This test is not easy. It is ______.", distractors: ["Soft", "Simple"], emoji: "🐢" },
-        { word: "ANNUAL", type: "syn", answer: "Yearly", sentence: "My birthday is an ______ event.", distractors: ["Daily", "Weekly"], emoji: "📅" },
-        { word: "ALLOW", type: "syn", answer: "Let", sentence: "Please ______ me go to the toilet.", distractors: ["Stop", "Ban"], emoji: "🚥" },
-        { word: "COMPLETED", type: "syn", answer: "Finished", sentence: "I have ______ my homework.", distractors: ["Started", "Opened"], emoji: "✅" },
-        { word: "VANISH", type: "syn", answer: "Disappear", sentence: "The ghost seemed to ______ into thin air.", distractors: ["Show", "Appear"], emoji: "💨" },
-        { word: "GENUINE", type: "syn", answer: "Real", sentence: "This is not fake. It is ______ gold.", distractors: ["False", "Lie"], emoji: "💍" },
-        { word: "OBTAIN", type: "syn", answer: "Get", sentence: "I need to ______ a ticket first.", distractors: ["Lose", "Give"], emoji: "🎫" },
-        { word: "RAPID", type: "syn", answer: "Fast", sentence: "The train is very ______. It is quick.", distractors: ["Slow", "Late"], emoji: "🚄" },
-        { word: "OBSERVE", type: "syn", answer: "Watch", sentence: "The scientist likes to ______ the stars.", distractors: ["Ignore", "Miss"], emoji: "🔭" },
-        { word: "MISTAKE", type: "syn", answer: "Error", sentence: "I wrote the wrong answer. It was a ______.", distractors: ["Fact", "Truth"], emoji: "❌" },
-        { word: "OPPORTUNITY", type: "syn", answer: "Chance", sentence: "This is a good ______ to learn.", distractors: ["Problem", "Bad"], emoji: "🍀" },
-        { word: "ACCURATE", type: "syn", answer: "Correct", sentence: "Your answer is ______. Good job!", distractors: ["Wrong", "False"], emoji: "🎯" },
-        { word: "CONSUME", type: "syn", answer: "Eat", sentence: "People ______ a lot of food everyday.", distractors: ["Play", "Make"], emoji: "🍔" },
-        { word: "SUFFICIENT", type: "syn", answer: "Enough", sentence: "We have ______ food for everyone.", distractors: ["Little", "No"], emoji: "🍱" },
-        { word: "VACATION", type: "syn", answer: "Holiday", sentence: "I am going on ______ to Japan.", distractors: ["Work", "School"], emoji: "🏖️" }
-    ];
+    function playSound(type) {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
 
-    let state = {
-        hp: 100,
-        score: 0,
-        level: 1,
-        waveCount: 0, 
-        isBoss: false,
-        bossHP: 3,
-        currentQ: null,
-        pool: []
-    };
+        const now = audioCtx.currentTime;
+
+        if (type === 'hit') {
+            // High pitch coin sound
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(800, now);
+            osc.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            osc.start(now);
+            osc.stop(now + 0.1);
+        } else if (type === 'miss') {
+            // Low pitch buzz
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(150, now);
+            osc.frequency.linearRampToValueAtTime(100, now + 0.3);
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+            osc.start(now);
+            osc.stop(now + 0.3);
+        } else if (type === 'boss') {
+            // Siren alarm
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(300, now);
+            osc.frequency.linearRampToValueAtTime(600, now + 0.5);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.linearRampToValueAtTime(0.01, now + 1.0);
+            osc.start(now);
+            osc.stop(now + 1.0);
+        } else if (type === 'select') {
+            // Click
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(600, now);
+            gain.gain.setValueAtTime(0.1, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+            osc.start(now);
+            osc.stop(now + 0.05);
+        }
+    }
 
     function speak(text) {
         if ('speechSynthesis' in window) {
             window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.rate = 0.8; 
-            utterance.lang = 'en-US';
-            window.speechSynthesis.speak(utterance);
+            const u = new SpeechSynthesisUtterance(text);
+            u.rate = 0.8; u.lang = 'en-US';
+            window.speechSynthesis.speak(u);
         }
     }
 
-    function initGame() {
-        document.getElementById('start-screen').style.display = 'none';
-        document.getElementById('end-screen').style.display = 'none';
-        document.getElementById('win-screen').style.display = 'none';
+    // --- 2. Huge Database (80 Words) ---
+    // Mix of Antonyms and Synonyms for S.2 Level
+    const rawDB = [
+        // Antonyms (Opposites)
+        { w:"EXPENSIVE", t:"ant", a:"Cheap", s:"This car is too ______. I have no money.", d:["Costly", "Rich"], e:"💰" },
+        { w:"ANCIENT", t:"ant", a:"Modern", s:"This temple is very old and ______.", d:["Past", "Dusty"], e:"🏛️" },
+        { w:"VICTORY", t:"ant", a:"Defeat", s:"We won! It was a great ______.", d:["Loss", "Win"], e:"🏆" },
+        { w:"SHARP", t:"ant", a:"Blunt", s:"This knife is ______. It cannot cut.", d:["Pointy", "Keen"], e:"🔪" },
+        { w:"INNOCENT", t:"ant", a:"Guilty", s:"He did not do it. He is ______.", d:["Bad", "Wrong"], e:"😇" },
+        { w:"PERMANENT", t:"ant", a:"Temporary", s:"This tattoo will stay forever. It is ______.", d:["Brief", "Short"], e:"⚓" },
+        { w:"STRENGTHEN", t:"ant", a:"Weaken", s:"Exercise will ______ your muscles.", d:["Hurt", "Break"], e:"💪" },
+        { w:"PUBLIC", t:"ant", a:"Private", s:"This park is for everyone. It is ______.", d:["Secret", "Closed"], e:"🌳" },
+        { w:"INCLUDE", t:"ant", a:"Exclude", s:"Everyone can come. We ______ everyone.", d:["Ban", "Stop"], e:"➕" },
+        { w:"RUDE", t:"ant", a:"Polite", s:"Don't be ______. Say thank you.", d:["Mean", "Bad"], e:"😡" },
+        { w:"SUCCESS", t:"ant", a:"Failure", s:"The project was a ______. We made money.", d:["Loss", "Bad"], e:"🌟" },
+        { w:"FREQUENT", t:"ant", a:"Rare", s:"I go there often. It is a ______ visit.", d:["Few", "Seldom"], e:"🔁" },
+        { w:"GENEROUS", t:"ant", a:"Stingy", s:"He gives money to everyone. He is ______.", d:["Mean", "Poor"], e:"🎁" },
+        { w:"ADVANTAGE", t:"ant", a:"Disadvantage", s:"Being tall is an ______ in basketball.", d:["Problem", "Bad"], e:"🏀" },
+        { w:"CREATE", t:"ant", a:"Destroy", s:"Artists ______ beautiful paintings.", d:["Kill", "Break"], e:"🎨" },
+        { w:"ARRIVE", t:"ant", a:"Depart", s:"When will the train ______?", d:["Go", "Leave"], e:"🚉" },
+        { w:"VOLUNTARY", t:"ant", a:"Compulsory", s:"You don't have to do it. It is ______.", d:["Forced", "Must"], e:"🙋" },
+        { w:"OPTIMIST", t:"ant", a:"Pessimist", s:"He always sees the good side. He is an ______.", d:["Sad", "Down"], e:"☀️" },
+        { w:"SUPERIOR", t:"ant", a:"Inferior", s:"This quality is ______. It is the best.", d:["Low", "Bad"], e:"🥇" },
+        { w:"TRANSPARENT", t:"ant", a:"Opaque", s:"Glass is ______. You can see through it.", d:["Dark", "Solid"], e:"🪟" },
+        { w:"EXPAND", t:"ant", a:"Shrink", s:"Heat makes the metal ______.", d:["Small", "Tiny"], e:"🎈" },
+        { w:"UNIQUE", t:"ant", a:"Common", s:"There is only one like this. It is ______.", d:["Same", "Usual"], e:"🦄" },
+        { w:"ALERT", t:"ant", a:"Asleep", s:"The guard must stay ______.", d:["Tired", "Lazy"], e:"🚨" },
+        { w:"DEFEND", t:"ant", a:"Attack", s:"We must ______ our castle.", d:["Hit", "Strike"], e:"🛡️" },
+        { w:"FRIEND", t:"ant", a:"Enemy", s:"He helps me. He is my ______.", d:["Foe", "Rival"], e:"🤝" },
+        { w:"BROAD", t:"ant", a:"Narrow", s:"The river is very ______. It is wide.", d:["Thin", "Small"], e:"🌉" },
+        { w:"LIQUID", t:"ant", a:"Solid", s:"Water is a ______. Ice is not.", d:["Hard", "Gas"], e:"💧" },
+        { w:"CAPTIVITY", t:"ant", a:"Freedom", s:"Animals in the zoo are in ______.", d:["Wild", "Free"], e:"⛓️" },
+        { w:"COMPLEX", t:"ant", a:"Simple", s:"This math problem is very ______.", d:["Easy", "Plain"], e:"🧩" },
+        { w:"DANGEROUS", t:"ant", a:"Safe", s:"Lions are ______ animals.", d:["Kind", "Good"], e:"🦁" },
         
+        // Synonyms (Same Meaning)
+        { w:"ENORMOUS", t:"syn", a:"Huge", s:"The giant is ______. Very big.", d:["Tiny", "Small"], e:"🦖" },
+        { w:"WEALTHY", t:"syn", a:"Rich", s:"He buys everything. He is ______.", d:["Poor", "Broke"], e:"🤑" },
+        { w:"TERRIFIED", t:"syn", a:"Scared", s:"She saw a ghost and was ______.", d:["Brave", "Happy"], e:"😱" },
+        { w:"SELECT", t:"syn", a:"Choose", s:"Please ______ the right answer.", d:["Reject", "Stop"], e:"👆" },
+        { w:"RESCUE", t:"syn", a:"Save", s:"Firemen ______ people from fire.", d:["Hurt", "Drop"], e:"🚒" },
+        { w:"DIFFICULT", t:"syn", a:"Hard", s:"The exam was ______.", d:["Easy", "Soft"], e:"😓" },
+        { w:"ANNUAL", t:"syn", a:"Yearly", s:"Christmas is an ______ event.", d:["Daily", "Weekly"], e:"📅" },
+        { w:"ALLOW", t:"syn", a:"Let", s:"Please ______ me to go out.", d:["Ban", "Stop"], e:"🆗" },
+        { w:"COMPLETED", t:"syn", a:"Finished", s:"I have ______ my work.", d:["Start", "Begin"], e:"🏁" },
+        { w:"GENUINE", t:"syn", a:"Real", s:"This is ______ gold. Not fake.", d:["Fake", "False"], e:"💍" },
+        { w:"OBTAIN", t:"syn", a:"Get", s:"Where did you ______ that bag?", d:["Lose", "Give"], e:"🛍️" },
+        { w:"RAPID", t:"syn", a:"Fast", s:"The cheetah is very ______.", d:["Slow", "Late"], e:"🐆" },
+        { w:"OBSERVE", t:"syn", a:"Watch", s:"Scientists ______ the stars.", d:["Ignore", "Miss"], e:"🔭" },
+        { w:"MISTAKE", t:"syn", a:"Error", s:"I made a ______. Sorry.", d:["Fact", "Truth"], e:"❌" },
+        { w:"SUFFICIENT", t:"syn", a:"Enough", s:"We have ______ food for everyone.", d:["Lack", "None"], e:"🍱" },
+        { w:"VACATION", t:"syn", a:"Holiday", s:"Summer ______ is coming!", d:["Work", "Job"], e:"🏖️" },
+        { w:"ATTEMPT", t:"syn", a:"Try", s:"I will ______ to climb the mountain.", d:["Quit", "Stop"], e:"🧗" },
+        { w:"BENEFIT", t:"syn", a:"Advantage", s:"What is the ______ of this plan?", d:["Loss", "Bad"], e:"📈" },
+        { w:"CEASE", t:"syn", a:"Stop", s:"The rain began to ______.", d:["Start", "Go"], e:"🛑" },
+        { w:"DEMONSTRATE", t:"syn", a:"Show", s:"Let me ______ how to do it.", d:["Hide", "Cover"], e:"👩‍🏫" },
+        { w:"ENTIRE", t:"syn", a:"Whole", s:"He ate the ______ pizza!", d:["Part", "Half"], e:"🍕" },
+        { w:"FURIOUS", t:"syn", a:"Angry", s:"Mom was ______ when I broke the vase.", d:["Happy", "Calm"], e:"🤬" },
+        { w:"GATHER", t:"syn", a:"Collect", s:"Squirrels ______ nuts for winter.", d:["Drop", "Lose"], e:"🐿️" },
+        { w:"HAZARDOUS", t:"syn", a:"Dangerous", s:"Chemicals are ______.", d:["Safe", "Good"], e:"☣️" },
+        { w:"IMITATE", t:"syn", a:"Copy", s:"Parrots can ______ human voice.", d:["Create", "Original"], e:"🦜" },
+        { w:"JOYFUL", t:"syn", a:"Happy", s:"The wedding was a ______ day.", d:["Sad", "Cry"], e:"🥳" },
+        { w:"KEEN", t:"syn", a:"Eager", s:"He is ______ to learn English.", d:["Bored", "Dull"], e:"🤩" },
+        { w:"LUMINOUS", t:"syn", a:"Bright", s:"The moon is ______ tonight.", d:["Dark", "Dim"], e:"🌕" },
+        { w:"MISERABLE", t:"syn", a:"Unhappy", s:"He felt ______ in the rain.", d:["Glad", "Joy"], e:"🌧️" },
+        { w:"NECESSARY", t:"syn", a:"Essential", s:"Water is ______ for life.", d:["Extra", "Useless"], e:"💧" }
+    ];
+
+    // --- 3. Game Logic ---
+    let state = {
+        pool: [],
+        hp: 100,
+        score: 0,
+        lvl: 1,
+        wave: 0,
+        isBoss: false,
+        bossHP: 3,
+        currentQ: null
+    };
+
+    function startGame() {
+        // Reset Logic
+        state.pool = JSON.parse(JSON.stringify(rawDB));
         state.hp = 100;
         state.score = 0;
-        state.level = 1;
-        state.waveCount = 0;
+        state.lvl = 1;
+        state.wave = 0;
         state.isBoss = false;
-        
-        updateHUD();
-        resetPool();
-        nextTurn();
-    }
 
-    function resetPool() {
-        state.pool = JSON.parse(JSON.stringify(db));
+        document.querySelectorAll('.overlay').forEach(el => el.style.display = 'none');
+        updateHUD();
+        nextTurn();
+        
+        // Unlock Audio context on first click
+        if (audioCtx.state === 'suspended') audioCtx.resume();
     }
 
     function nextTurn() {
         if (state.hp <= 0) return gameOver();
+        if (state.pool.length === 0 && !state.isBoss) return gameWin();
 
-        if (state.pool.length === 0 && !state.isBoss) {
-            return gameWin();
+        // Check Boss (Every 5th monster, i.e., wave 4, 9, 14...)
+        if (state.wave > 0 && state.wave % 5 === 4 && !state.isBoss) {
+            triggerBossIntro();
+        } else {
+            setupNormalRound();
         }
+    }
 
-        if (state.waveCount > 0 && state.waveCount % 4 === 0 && !state.isBoss) {
-            startBossBattle();
-            return;
-        }
+    function triggerBossIntro() {
+        playSound('boss');
+        const warning = document.getElementById('warning-screen');
+        warning.style.display = 'flex';
+        
+        setTimeout(() => {
+            warning.style.display = 'none';
+            setupBossRound();
+        }, 2000);
+    }
 
+    function setupBossRound() {
+        state.isBoss = true;
+        state.bossHP = 3;
+        
+        // Visuals
+        document.getElementById('game-container').classList.add('boss-mode-bg');
+        document.getElementById('q-card').classList.add('boss-mode-card');
+        document.getElementById('boss-overlay-ui').style.display = 'block';
+        updateBossUI();
+
+        generateQuestion(true);
+    }
+
+    function setupNormalRound() {
         state.isBoss = false;
-        document.getElementById('game-container').classList.remove('boss-mode');
-        document.getElementById('boss-hp-bar').style.display = 'none';
+        
+        // Remove Visuals
+        document.getElementById('game-container').classList.remove('boss-mode-bg');
+        document.getElementById('q-card').classList.remove('boss-mode-card');
+        document.getElementById('boss-overlay-ui').style.display = 'none';
 
+        generateQuestion(false);
+    }
+
+    function generateQuestion(isBoss) {
+        if (state.pool.length === 0) return gameWin();
+
+        // Get random question from pool
         const idx = Math.floor(Math.random() * state.pool.length);
         state.currentQ = state.pool[idx];
+        
+        // If normal round, remove from pool immediately. 
+        // If Boss round, we keep it ? No, let's remove it to avoid repeats. 
+        // If Boss needs 3 hits, we generate 3 fresh questions!
         state.pool.splice(idx, 1);
 
-        renderTurn();
+        renderUI(isBoss);
     }
 
-    function startBossBattle() {
-        state.isBoss = true;
-        state.bossHP = 3; 
-        
-        document.getElementById('game-container').classList.add('boss-mode');
-        document.getElementById('boss-hp-bar').style.display = 'block';
-        updateBossHP();
-        
-        generateBossQuestion();
-    }
-
-    function generateBossQuestion() {
-        const randomQ = db[Math.floor(Math.random() * db.length)];
-        state.currentQ = randomQ;
-        renderTurn(true);
-    }
-
-    function renderTurn(isBossRender = false) {
+    function renderUI(isBoss) {
         const q = state.currentQ;
+        const emoji = isBoss ? "🐲" : q.e;
         
-        document.getElementById('m-emoji').innerText = isBossRender ? "🐲" : q.emoji;
-        document.getElementById('m-word').innerText = q.word;
-        document.getElementById('m-sentence').innerText = q.sentence;
-
+        document.getElementById('m-emoji').innerText = emoji;
+        document.getElementById('m-word').innerText = q.w;
+        document.getElementById('m-sentence').innerText = q.s;
+        
         const badge = document.getElementById('task-badge');
-        if (q.type === 'syn') {
-            badge.innerText = "Target: SYNONYM (Same)";
-            badge.style.background = "var(--syn-color)";
-        } else {
-            badge.innerText = "Target: ANTONYM (Opposite)";
-            badge.style.background = "var(--ant-color)";
-        }
+        badge.innerText = q.t === 'syn' ? "SYNONYM (Same)" : "ANTONYM (Opposite)";
+        badge.style.background = q.t === 'syn' ? "var(--syn-color)" : "var(--ant-color)";
 
-        speak(q.word);
+        speak(q.w);
 
+        // Buttons
         const box = document.getElementById('options-box');
         box.innerHTML = '';
-        
-        let choices = [q.answer, ...q.distractors];
-        choices.sort(() => Math.random() - 0.5); 
+        let opts = [q.a, ...q.d];
+        opts.sort(() => Math.random() - 0.5);
 
-        choices.forEach(c => {
+        opts.forEach(opt => {
             const btn = document.createElement('button');
-            btn.innerText = c;
-            btn.onclick = () => handleInput(c, btn);
+            btn.className = 'option-btn';
+            btn.innerText = opt;
+            btn.onclick = () => handleAnswer(opt, btn);
+            // Add click sound
+            btn.onmousedown = () => playSound('select');
             box.appendChild(btn);
         });
-        
-        // 自動捲動到最底部，確保按鈕可見
-        const container = document.getElementById('game-container');
-        container.scrollTop = container.scrollHeight;
     }
 
-    function handleInput(choice, btn) {
-        const isCorrect = (choice === state.currentQ.answer);
+    function handleAnswer(ans, btn) {
+        const isCorrect = ans === state.currentQ.a;
+        const allBtns = document.querySelectorAll('.option-btn');
+        allBtns.forEach(b => b.disabled = true);
 
         if (isCorrect) {
-            showFeedback("HIT!", "gold");
-            document.getElementById('m-emoji').classList.add('hit-effect');
+            playSound('hit');
+            showFloatFeedback("HIT!", "gold");
             
-            Array.from(document.querySelectorAll('button')).forEach(b => b.disabled = true);
-
             if (state.isBoss) {
                 state.bossHP--;
-                updateBossHP();
+                updateBossUI();
                 state.score += 200;
                 
                 if (state.bossHP <= 0) {
+                    // Boss Dead
                     setTimeout(() => {
-                        state.waveCount++; 
-                        state.isBoss = false;
-                        state.level++; 
+                        state.wave++;
+                        state.lvl++;
                         nextTurn();
                     }, 1000);
                 } else {
-                    setTimeout(() => {
-                        generateBossQuestion();
-                    }, 1000);
+                    // Boss Hurt, Next Question
+                    setTimeout(() => generateQuestion(true), 1000);
                 }
             } else {
                 state.score += 100;
-                state.waveCount++;
+                state.wave++;
                 setTimeout(nextTurn, 800);
             }
 
         } else {
-            state.hp -= 20; 
-            showFeedback("MISS!", "red");
-            document.getElementById('stage').classList.add('shake');
-            btn.style.backgroundColor = "#552222";
-            btn.disabled = true;
+            playSound('miss');
+            showFloatFeedback("MISS!", "red");
+            state.hp -= 20;
+            btn.style.background = "#522";
             
+            // Shake effect
+            document.getElementById('game-container').style.transform = "translateX(10px)";
+            setTimeout(() => document.getElementById('game-container').style.transform = "translateX(0)", 100);
+
             if (state.hp <= 0) {
                 setTimeout(gameOver, 500);
             } else {
                 setTimeout(() => {
-                    document.getElementById('stage').classList.remove('shake');
+                   // If wrong in Boss, stick to same question? Or new? 
+                   // Let's give them a chance to retry same question after a delay or move on?
+                   // Standard logic: Move on but take damage.
+                   if(state.isBoss) {
+                       generateQuestion(true); 
+                   } else {
+                       // Normal monster hits you, but stays until killed? 
+                       // No, for flow, let's retry same Q logic or just move on.
+                       // Let's Retry same Q simply by enabling buttons minus the wrong one
+                       // BUT 'Modification 1' didn't specify. Let's just reset buttons for simplicity
+                       allBtns.forEach(b => {
+                           if(b !== btn) b.disabled = false;
+                       });
+                   }
                 }, 500);
             }
         }
         updateHUD();
     }
 
-    function showFeedback(text, color) {
-        const fb = document.getElementById('feedback');
-        fb.innerText = text;
-        fb.style.color = color;
-        fb.style.display = 'block';
-        setTimeout(() => { fb.style.display = 'none'; }, 500);
+    function showFloatFeedback(txt, col) {
+        const f = document.getElementById('feedback');
+        f.innerText = txt; f.style.color = col;
+        f.style.display = 'block';
+        setTimeout(() => f.style.display = 'none', 600);
     }
 
     function updateHUD() {
-        document.getElementById('score-num').innerText = state.score;
-        document.getElementById('level-num').innerText = state.level;
-        document.getElementById('player-hp').style.width = state.hp + "%";
+        document.getElementById('score').innerText = state.score;
+        document.getElementById('lvl').innerText = state.lvl;
+        document.getElementById('hp-bar').style.width = state.hp + "%";
     }
 
-    function updateBossHP() {
-        const fill = document.getElementById('boss-hp-fill');
+    function updateBossUI() {
         const pct = (state.bossHP / 3) * 100;
-        fill.style.width = pct + "%";
+        document.getElementById('boss-hp-fill').style.width = pct + "%";
     }
 
     function gameOver() {
@@ -538,7 +629,6 @@
 
     function gameWin() {
         document.getElementById('win-screen').style.display = 'flex';
-        document.getElementById('win-score').innerText = state.score;
     }
 
 </script>
