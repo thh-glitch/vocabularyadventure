@@ -399,4 +399,148 @@
 
         // 隨機抽取並不放回 (No Repeat Logic)
         const idx = Math.floor(Math.random() * state.pool.length);
-        state.currentQ = state.pool
+        state.currentQ = state.pool[idx];
+        
+        // 從池中移除該題，確保不會重複
+        state.pool.splice(idx, 1);
+
+        renderTurn();
+    }
+
+    function startBossBattle() {
+        state.isBoss = true;
+        state.bossHP = 3; 
+        
+        document.getElementById('game-container').classList.add('boss-mode');
+        document.getElementById('boss-hp-bar').style.display = 'block';
+        updateBossHP();
+        
+        generateBossQuestion();
+    }
+
+    function generateBossQuestion() {
+        // Boss 戰直接從原始 DB 隨機抽一題 (因為 Boss 需要連續出題，可能會用到已刪除的題目，這可以接受)
+        // 為了不讓 Boss 戰消耗剩餘題目太快，這裡不從 pool 移除，而是從 db 隨機取
+        // 或者：如果希望 Boss 也完全不重複，就要檢查 pool 剩餘量。
+        // 策略：Boss 題目可重複，作為「複習」。
+        const randomQ = db[Math.floor(Math.random() * db.length)];
+        state.currentQ = randomQ;
+        renderTurn(true);
+    }
+
+    function renderTurn(isBossRender = false) {
+        const q = state.currentQ;
+        
+        document.getElementById('m-emoji').innerText = isBossRender ? "🐲" : q.emoji;
+        document.getElementById('m-word').innerText = q.word;
+        document.getElementById('m-sentence').innerText = q.sentence;
+
+        const badge = document.getElementById('task-badge');
+        if (q.type === 'syn') {
+            badge.innerText = "Target: SYNONYM (Same)";
+            badge.style.background = "var(--syn-color)";
+        } else {
+            badge.innerText = "Target: ANTONYM (Opposite)";
+            badge.style.background = "var(--ant-color)";
+        }
+
+        speak(q.word);
+
+        const box = document.getElementById('options-box');
+        box.innerHTML = '';
+        
+        let choices = [q.answer, ...q.distractors];
+        choices.sort(() => Math.random() - 0.5); 
+
+        choices.forEach(c => {
+            const btn = document.createElement('button');
+            btn.innerText = c;
+            btn.onclick = () => handleInput(c, btn);
+            box.appendChild(btn);
+        });
+    }
+
+    function handleInput(choice, btn) {
+        const isCorrect = (choice === state.currentQ.answer);
+
+        if (isCorrect) {
+            showFeedback("HIT!", "gold");
+            document.getElementById('m-emoji').classList.add('hit-effect');
+            
+            // Lock buttons
+            Array.from(document.querySelectorAll('button')).forEach(b => b.disabled = true);
+
+            if (state.isBoss) {
+                state.bossHP--;
+                updateBossHP();
+                state.score += 200;
+                
+                if (state.bossHP <= 0) {
+                    setTimeout(() => {
+                        state.waveCount++; 
+                        state.isBoss = false;
+                        state.level++; 
+                        nextTurn();
+                    }, 1000);
+                } else {
+                    setTimeout(() => {
+                        generateBossQuestion();
+                    }, 1000);
+                }
+            } else {
+                state.score += 100;
+                state.waveCount++;
+                setTimeout(nextTurn, 800);
+            }
+
+        } else {
+            state.hp -= 20; // 扣血
+            showFeedback("MISS!", "red");
+            document.getElementById('stage').classList.add('shake');
+            btn.style.backgroundColor = "#552222";
+            btn.disabled = true;
+            
+            if (state.hp <= 0) {
+                setTimeout(gameOver, 500);
+            } else {
+                setTimeout(() => {
+                    document.getElementById('stage').classList.remove('shake');
+                }, 500);
+            }
+        }
+        updateHUD();
+    }
+
+    function showFeedback(text, color) {
+        const fb = document.getElementById('feedback');
+        fb.innerText = text;
+        fb.style.color = color;
+        fb.style.display = 'block';
+        setTimeout(() => { fb.style.display = 'none'; }, 500);
+    }
+
+    function updateHUD() {
+        document.getElementById('score-num').innerText = state.score;
+        document.getElementById('level-num').innerText = state.level;
+        document.getElementById('player-hp').style.width = state.hp + "%";
+    }
+
+    function updateBossHP() {
+        const fill = document.getElementById('boss-hp-fill');
+        const pct = (state.bossHP / 3) * 100;
+        fill.style.width = pct + "%";
+    }
+
+    function gameOver() {
+        document.getElementById('end-screen').style.display = 'flex';
+        document.getElementById('final-score').innerText = state.score;
+    }
+
+    function gameWin() {
+        document.getElementById('win-screen').style.display = 'flex';
+        document.getElementById('win-score').innerText = state.score;
+    }
+
+</script>
+</body>
+</html>
