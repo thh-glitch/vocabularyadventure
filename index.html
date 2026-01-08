@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Word Dungeon: S.2 Mobile</title>
+    <title>Word Dungeon: Mobile Fix</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -16,46 +16,56 @@
             --accent: #fbc02d;
         }
 
+        * {
+            box-sizing: border-box; /* 確保邊距計算正確 */
+        }
+
         body {
             background-color: #000;
             font-family: 'Press Start 2P', cursive;
             color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            /* 允許頁面內容過長時滾動，防止按鈕被切掉 */
+            height: 100dvh; 
             display: flex;
             justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            overflow: hidden; /* 禁止手機滾動 */
-            touch-action: manipulation; /* 優化觸控 */
+            align-items: flex-start; /* 改為從頂部開始對齊 */
         }
 
         #game-container {
             width: 100%;
-            max-width: 500px; /* 回歸手機適合寬度 */
-            height: 100vh;    /* 佔滿手機全屏 */
+            max-width: 500px;
+            height: 100dvh; /* 適應手機瀏覽器高度 */
             background-color: var(--bg-color);
             display: flex;
             flex-direction: column;
             position: relative;
+            overflow-y: auto; /* 關鍵修改：允許垂直滾動 */
+            -webkit-overflow-scrolling: touch; /* 讓 iOS 滾動更順滑 */
         }
 
-        /* 頂部資訊欄 */
+        /* 頂部資訊欄 - 壓縮高度 */
         .hud {
+            flex-shrink: 0; /* 防止被壓縮 */
             display: flex;
             justify-content: space-between;
             align-items: center;
             background: #222;
-            padding: 10px;
+            padding: 8px 10px;
             border-bottom: 2px solid #555;
-            font-size: 12px;
-            height: 40px;
+            font-size: 10px; /* 字體稍微縮小 */
+            height: 40px; 
+            position: sticky; /* 固定在頂部 */
+            top: 0;
+            z-index: 10;
         }
 
         .hp-bar-outer {
-            width: 100px;
-            height: 12px;
+            width: 80px;
+            height: 10px;
             background: #555;
-            border: 2px solid #fff;
+            border: 1px solid #fff;
             display: inline-block;
             vertical-align: middle;
             margin-left: 5px;
@@ -68,9 +78,10 @@
             transition: width 0.3s;
         }
 
-        /* 戰鬥主畫面 */
+        /* 戰鬥主畫面 - 彈性調整 */
         .battle-stage {
-            flex-grow: 1;
+            flex-grow: 1; /* 佔據剩餘空間 */
+            min-height: 200px; /* 確保最小高度 */
             background: #15151a;
             display: flex;
             flex-direction: column;
@@ -88,15 +99,16 @@
             border: 2px solid var(--boss-color);
         }
 
+        /* 縮小怪物圖示以節省空間 */
         .monster-emoji {
-            font-size: 80px;
-            margin-bottom: 10px;
+            font-size: 60px; /* 從 80px 縮小 */
+            margin-bottom: 5px;
             filter: drop-shadow(0 0 10px rgba(255,255,255,0.2));
             transition: transform 0.2s;
         }
 
         .monster-word {
-            font-size: 28px;
+            font-size: 24px; /* 稍微縮小 */
             color: var(--accent);
             text-transform: uppercase;
             text-shadow: 2px 2px #000;
@@ -104,34 +116,32 @@
             text-align: center;
         }
 
-        /* 例句 (針對手機優化字體) */
         .monster-sentence {
             font-family: 'Roboto', sans-serif;
-            font-size: 16px;
+            font-size: 15px;
             color: #ccc;
             background: rgba(0,0,0,0.6);
-            padding: 8px 15px;
-            border-radius: 15px;
-            margin-bottom: 10px;
+            padding: 6px 12px;
+            border-radius: 12px;
+            margin-bottom: 5px;
             text-align: center;
-            line-height: 1.4;
-            max-width: 90%;
+            line-height: 1.3;
+            max-width: 95%;
         }
 
         .task-badge {
-            font-size: 12px;
-            padding: 5px 10px;
-            border-radius: 5px;
+            font-size: 10px;
+            padding: 4px 8px;
+            border-radius: 4px;
             color: #000;
             font-weight: bold;
             text-transform: uppercase;
-            margin-top: 10px;
+            margin-top: 5px;
         }
 
-        /* Boss 血條 */
         .boss-hp-container {
             width: 80%;
-            height: 8px;
+            height: 6px;
             background: #333;
             margin-top: 5px;
             border-radius: 4px;
@@ -144,12 +154,13 @@
             transition: width 0.3s;
         }
 
-        /* 選項按鈕區 */
+        /* 選項按鈕區 - 確保底部有空間 */
         .options-grid {
+            flex-shrink: 0; /* 防止被壓縮，確保按鈕完整顯示 */
             display: flex;
-            flex-direction: column; /* 手機版改為垂直排列，防誤觸 */
-            gap: 10px;
-            padding: 15px;
+            flex-direction: column;
+            gap: 8px;
+            padding: 10px 15px 20px 15px; /* 底部增加 padding */
             background: #222;
         }
 
@@ -160,10 +171,11 @@
             border-radius: 8px;
             font-family: 'Press Start 2P', cursive;
             font-size: 14px;
-            padding: 15px;
+            padding: 12px; /* 稍微縮小內距 */
             cursor: pointer;
             text-transform: uppercase;
-            text-align: center; /* 文字置中 */
+            text-align: center;
+            min-height: 44px; /* 確保手指好點擊 */
         }
 
         button:active {
@@ -204,7 +216,7 @@
 
         /* 覆蓋層 */
         .overlay-screen {
-            position: absolute;
+            position: fixed; /* 改為 fixed 確保蓋住全螢幕 */
             top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.95);
             display: flex;
@@ -214,11 +226,10 @@
             z-index: 200;
             text-align: center;
             padding: 20px;
-            box-sizing: border-box;
         }
         .start-btn {
             padding: 15px 30px;
-            font-size: 18px;
+            font-size: 16px;
             background: var(--syn-color);
             border: none;
             color: #000;
@@ -264,34 +275,31 @@
 
     <div class="options-grid" id="options-box">
         </div>
+</div>
 
-    <div id="start-screen" class="overlay-screen">
-        <h1 style="color:var(--accent); font-size:30px; line-height:1.5;">WORD DUNGEON<br>MOBILE</h1>
-        <p style="color:#aaa; margin-top:10px; font-size:12px;">Tap buttons to answer.<br>Turn on volume!</p>
-        <button class="start-btn" onclick="initGame()">START GAME</button>
-    </div>
+<div id="start-screen" class="overlay-screen">
+    <h1 style="color:var(--accent); font-size:26px; line-height:1.5;">WORD DUNGEON<br>MOBILE</h1>
+    <p style="color:#aaa; margin-top:10px; font-size:12px;">Tap buttons to answer.<br>Turn on volume!</p>
+    <button class="start-btn" onclick="initGame()">START GAME</button>
+</div>
 
-    <div id="end-screen" class="overlay-screen" style="display:none;">
-        <h1 style="color:var(--ant-color)">GAME OVER</h1>
-        <p>Final Score: <span id="final-score">0</span></p>
-        <button class="start-btn" onclick="initGame()">PLAY AGAIN</button>
-    </div>
-    
-    <div id="win-screen" class="overlay-screen" style="display:none;">
-        <h1 style="color:gold">YOU WON!</h1>
-        <p>You mastered all words!</p>
-        <p>Score: <span id="win-score">0</span></p>
-        <button class="start-btn" onclick="initGame()">RESTART</button>
-    </div>
+<div id="end-screen" class="overlay-screen" style="display:none;">
+    <h1 style="color:var(--ant-color)">GAME OVER</h1>
+    <p>Final Score: <span id="final-score">0</span></p>
+    <button class="start-btn" onclick="initGame()">PLAY AGAIN</button>
+</div>
+
+<div id="win-screen" class="overlay-screen" style="display:none;">
+    <h1 style="color:gold">YOU WON!</h1>
+    <p>You mastered all words!</p>
+    <p>Score: <span id="win-score">0</span></p>
+    <button class="start-btn" onclick="initGame()">RESTART</button>
 </div>
 
 <script>
-    // --- 1. 擴充後的字庫 (40 Words) ---
-    // 包含 Synonym (同義) 和 Antonym (反義)
-    // 難度：Secondary 2 Weak (Foundation)
-    
+    // --- 擴充字庫 (40 Words) ---
     const db = [
-        // --- Antonyms (Opposites) - RED ---
+        // --- Antonyms (RED) ---
         { word: "EXPENSIVE", type: "ant", answer: "Cheap", sentence: "I don't have much money. I need a ______ bag.", distractors: ["Costly", "Rich"], emoji: "🦇" },
         { word: "DANGEROUS", type: "ant", answer: "Safe", sentence: "Don't play with fire! It is not ______.", distractors: ["Scary", "Bad"], emoji: "🦁" },
         { word: "SIMPLE", type: "ant", answer: "Complex", sentence: "This puzzle is not ______. It is very hard.", distractors: ["Easy", "Short"], emoji: "🕷️" },
@@ -313,7 +321,7 @@
         { word: "GUILTY", type: "ant", answer: "Innocent", sentence: "He did not steal the money. He is ______.", distractors: ["Bad", "Wrong"], emoji: "😇" },
         { word: "CREATE", type: "ant", answer: "Destroy", sentence: "Don't build it. You should ______ it.", distractors: ["Make", "Form"], emoji: "💥" },
 
-        // --- Synonyms (Same meaning) - GREEN ---
+        // --- Synonyms (GREEN) ---
         { word: "ENORMOUS", type: "syn", answer: "Huge", sentence: "The elephant is ______. It is very big.", distractors: ["Tiny", "Small"], emoji: "🦖" },
         { word: "TERRIFIED", type: "syn", answer: "Scared", sentence: "He saw a ghost and was ______.", distractors: ["Brave", "Happy"], emoji: "😱" },
         { word: "WEALTHY", type: "syn", answer: "Rich", sentence: "He has a lot of money. He is ______.", distractors: ["Poor", "Sad"], emoji: "🤑" },
@@ -349,7 +357,7 @@
 
     function speak(text) {
         if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel(); // 停止上一句
+            window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.rate = 0.8; 
             utterance.lang = 'en-US';
@@ -374,34 +382,27 @@
     }
 
     function resetPool() {
-        // 深拷貝，確保重置時題目完整
         state.pool = JSON.parse(JSON.stringify(db));
     }
 
     function nextTurn() {
         if (state.hp <= 0) return gameOver();
 
-        // 檢查是否通關 (字庫全空)
         if (state.pool.length === 0 && !state.isBoss) {
             return gameWin();
         }
 
-        // Boss 戰檢查 (每 4 隻怪)
         if (state.waveCount > 0 && state.waveCount % 4 === 0 && !state.isBoss) {
             startBossBattle();
             return;
         }
 
-        // 普通怪
         state.isBoss = false;
         document.getElementById('game-container').classList.remove('boss-mode');
         document.getElementById('boss-hp-bar').style.display = 'none';
 
-        // 隨機抽取並不放回 (No Repeat Logic)
         const idx = Math.floor(Math.random() * state.pool.length);
         state.currentQ = state.pool[idx];
-        
-        // 從池中移除該題，確保不會重複
         state.pool.splice(idx, 1);
 
         renderTurn();
@@ -419,10 +420,6 @@
     }
 
     function generateBossQuestion() {
-        // Boss 戰直接從原始 DB 隨機抽一題 (因為 Boss 需要連續出題，可能會用到已刪除的題目，這可以接受)
-        // 為了不讓 Boss 戰消耗剩餘題目太快，這裡不從 pool 移除，而是從 db 隨機取
-        // 或者：如果希望 Boss 也完全不重複，就要檢查 pool 剩餘量。
-        // 策略：Boss 題目可重複，作為「複習」。
         const randomQ = db[Math.floor(Math.random() * db.length)];
         state.currentQ = randomQ;
         renderTurn(true);
@@ -458,6 +455,10 @@
             btn.onclick = () => handleInput(c, btn);
             box.appendChild(btn);
         });
+        
+        // 自動捲動到最底部，確保按鈕可見
+        const container = document.getElementById('game-container');
+        container.scrollTop = container.scrollHeight;
     }
 
     function handleInput(choice, btn) {
@@ -467,7 +468,6 @@
             showFeedback("HIT!", "gold");
             document.getElementById('m-emoji').classList.add('hit-effect');
             
-            // Lock buttons
             Array.from(document.querySelectorAll('button')).forEach(b => b.disabled = true);
 
             if (state.isBoss) {
@@ -494,7 +494,7 @@
             }
 
         } else {
-            state.hp -= 20; // 扣血
+            state.hp -= 20; 
             showFeedback("MISS!", "red");
             document.getElementById('stage').classList.add('shake');
             btn.style.backgroundColor = "#552222";
