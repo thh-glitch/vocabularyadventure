@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word Dungeon: Boss Edition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #1a1a20;
+            --panel-color: #2d2d38;
+            --text-main: #fff;
+            --syn-color: #66bb6a; /* Softer Green */
+            --ant-color: #ef5350; /* Softer Red */
+            --boss-color: #ab47bc; /* Purple */
+            --accent: #fbc02d;
+        }
+
+        body {
+            background-color: #000;
+            font-family: 'Press Start 2P', cursive;
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        /* --- 1. 介面放大設定 --- */
+        #game-container {
+            width: 95%;
+            max-width: 900px; /* 加寬介面 */
+            height: 90vh;
+            max-height: 800px;
+            background-color: var(--bg-color);
+            border: 6px solid #444;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 0 40px rgba(0,0,0,0.9);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* 頂部資訊欄 */
+        .hud {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #222;
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #555;
+            font-size: 16px; /* 字體加大 */
+            margin-bottom: 20px;
+        }
+
+        .hp-bar-outer {
+            width: 250px; /* 血條加長 */
+            height: 25px;
+            background: #555;
+            border: 3px solid #fff;
+            border-radius: 5px;
+            overflow: hidden;
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 10px;
+        }
+
+        .hp-bar-inner {
+            width: 100%;
+            height: 100%;
+            background: #ff3333;
+            transition: width 0.3s;
+        }
+
+        /* 戰鬥主畫面 */
+        .battle-stage {
+            flex-grow: 1;
+            background: #15151a;
+            border: 4px solid #777;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 30px 30px;
+            margin-bottom: 20px;
+            padding: 20px;
+        }
+
+        /* 怪物顯示區 */
+        .monster-emoji {
+            font-size: 100px; /* 怪物變大 */
+            margin-bottom: 10px;
+            filter: drop-shadow(0 0 20px rgba(255,255,255,0.2));
+            transition: transform 0.2s;
+        }
+
+        .monster-word {
+            font-size: 42px; /* 單字變大 */
+            color: var(--accent);
+            text-transform: uppercase;
+            text-shadow: 4px 4px #000;
+            margin: 10px 0;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        /* 例句顯示 (新增) */
+        .monster-sentence {
+            font-family: 'Roboto', sans-serif; /* 改用易讀字體顯示句子 */
+            font-size: 20px;
+            color: #ccc;
+            background: rgba(0,0,0,0.6);
+            padding: 10px 20px;
+            border-radius: 20px;
+            margin-bottom: 15px;
+            text-align: center;
+            max-width: 80%;
+        }
+
+        .task-badge {
+            font-size: 18px;
+            padding: 8px 16px;
+            border-radius: 8px;
+            color: #000;
+            font-weight: bold;
+            text-transform: uppercase;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        /* Boss 特效 */
+        .boss-mode .battle-stage {
+            border-color: var(--boss-color);
+            background: #2a002a;
+        }
+        .boss-mode .monster-emoji {
+            font-size: 150px; /* Boss 更大 */
+            filter: drop-shadow(0 0 30px var(--boss-color));
+        }
+
+        /* Boss 血量條 */
+        .boss-hp-container {
+            width: 60%;
+            height: 10px;
+            background: #333;
+            margin-top: 10px;
+            border-radius: 5px;
+            display: none; /* 只有 Boss 出現 */
+        }
+        .boss-hp-fill {
+            width: 100%;
+            height: 100%;
+            background: var(--boss-color);
+            transition: width 0.3s;
+        }
+
+        /* 選項按鈕區 */
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr; /* 三列並排 */
+            gap: 15px;
+            height: 120px;
+        }
+
+        button {
+            background-color: var(--panel-color);
+            color: white;
+            border: 3px solid #666;
+            border-radius: 8px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 18px; /* 選項字體加大 */
+            cursor: pointer;
+            transition: 0.1s;
+            text-transform: uppercase;
+        }
+
+        button:hover:not(:disabled) {
+            background-color: #3d3d4d;
+            border-color: #aaa;
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* 狀態文字與動畫 */
+        .feedback-overlay {
+            position: absolute;
+            font-size: 60px;
+            font-weight: bold;
+            text-shadow: 4px 4px 0 #000;
+            pointer-events: none;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: none;
+            z-index: 100;
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        .shake { animation: shake 0.4s; }
+
+        @keyframes damage {
+            0% { filter: brightness(1); transform: scale(1); }
+            50% { filter: brightness(5) sepia(1) hue-rotate(-50deg) saturate(5); transform: scale(0.9); }
+            100% { filter: brightness(1); transform: scale(1); }
+        }
+        .hit-effect { animation: damage 0.2s; }
+
+        /* 開始與結束畫面 */
+        .overlay-screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            text-align: center;
+        }
+        .start-btn {
+            padding: 20px 40px;
+            font-size: 24px;
+            background: var(--syn-color);
+            border: none;
+            color: #000;
+            margin-top: 20px;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="feedback" class="feedback-overlay">HIT!</div>
+
+    <div class="hud">
+        <div>STAGE: <span id="level-num">1</span></div>
+        <div>SCORE: <span id="score-num" style="color:gold">0</span></div>
+        <div>
+            HP
+            <div class="hp-bar-outer">
+                <div class="hp-bar-inner" id="player-hp"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="battle-stage" id="stage">
+        <div class="monster-emoji" id="m-emoji">🦇</div>
+        <div class="monster-word" id="m-word">EXPENSIVE</div>
+        <div class="monster-sentence" id="m-sentence">"This car is too _____ for me."</div>
+        
+        <div class="boss-hp-container" id="boss-hp-bar">
+            <div class="boss-hp-fill" id="boss-hp-fill"></div>
+        </div>
+
+        <div style="flex-grow:1"></div>
+        
+        <div class="task-badge" id="task-badge">ANT (Opposite)</div>
+    </div>
+
+    <div class="options-grid" id="options-box">
+        </div>
+
+    <div id="start-screen" class="overlay-screen">
+        <h1 style="color:var(--accent); font-size:40px; line-height:1.5;">WORD DUNGEON<br>RPG</h1>
+        <p style="color:#aaa; margin-top:10px;">Turn on sound for best experience!</p>
+        <button class="start-btn" onclick="initGame()">START ADVENTURE</button>
+    </div>
+
+    <div id="end-screen" class="overlay-screen" style="display:none;">
+        <h1 style="color:var(--ant-color)">GAME OVER</h1>
+        <p>Your Adventure Ends Here.</p>
+        <p>Final Score: <span id="final-score">0</span></p>
+        <button class="start-btn" onclick="initGame()">TRY AGAIN</button>
+    </div>
+</div>
+
+<script>
+    // --- 1. 資料庫 (Enhanced Database) ---
+    // Added 'sentence' field. 
+    // Tip: 对于弱底学生，句子越简单越好。
+    const db = [
+        // Antonyms (Red)
+        { word: "EXPENSIVE", type: "ant", answer: "Cheap", sentence: "I don't have much money. I need something ______.", distractors: ["Costly", "Rich"], emoji: "🦇" },
+        { word: "DANGEROUS", type: "ant", answer: "Safe", sentence: "Don't touch that fire! It is not ______.", distractors: ["Scary", "Bad"], emoji: "🦁" },
+        { word: "SIMPLE", type: "ant", answer: "Complex", sentence: "This math problem is not ______. It is very hard.", distractors: ["Easy", "Short"], emoji: "🕷️" },
+        { word: "VICTORY", type: "ant", answer: "Defeat", sentence: "We won the game! It was a great ______.", distractors: ["Win", "Loss"], emoji: "👺" },
+        { word: "ANCIENT", type: "ant", answer: "Modern", sentence: "This building is very old. It is ______.", distractors: ["New", "Fresh"], emoji: "🧟" },
+        { word: "SHARP", type: "ant", answer: "Blunt", sentence: "This knife cannot cut. It is ______.", distractors: ["Pointy", "Keen"], emoji: "🦂" },
+        { word: "EMPTY", type: "ant", answer: "Full", sentence: "The glass has no water. It is ______.", distractors: ["Hollow", "Clean"], emoji: "👻" },
+
+        // Synonyms (Green)
+        { word: "ENORMOUS", type: "syn", answer: "Huge", sentence: "The elephant is ______. It is very big.", distractors: ["Tiny", "Small"], emoji: "🦖" },
+        { word: "TERRIFIED", type: "syn", answer: "Scared", sentence: "He saw a ghost and was ______.", distractors: ["Brave", "Happy"], emoji: "😱" },
+        { word: "WEALTHY", type: "syn", answer: "Rich", sentence: "He has a lot of money. He is ______.", distractors: ["Poor", "Sad"], emoji: "🤑" },
+        { word: "SELECT", type: "syn", answer: "Choose", sentence: "Please ______ the best answer.", distractors: ["Refuse", "Stop"], emoji: "🦎" },
+        { word: "RESCUE", type: "syn", answer: "Save", sentence: "The fireman helped to ______ the cat.", distractors: ["Hurt", "Drop"], emoji: "⛑️" },
+        { word: "DIFFICULT", type: "syn", answer: "Hard", sentence: "This test is not easy. It is ______.", distractors: ["Soft", "Simple"], emoji: "🐢" },
+        { word: "ANNUAL", type: "syn", answer: "Yearly", sentence: "My birthday is an ______ event.", distractors: ["Daily", "Weekly"], emoji: "📅" }
+    ];
+
+    // Boss Data
+    const bossData = { word: "THE BOSS", type: "boss", answer: "Attack", sentence: "The Dragon is here! Choose the synonym of 'STRIKE' to attack!", distractors: ["Sleep", "Run"], emoji: "🐲", realAnswer: "Hit" };
+
+    // --- 2. 遊戲狀態變數 ---
+    let state = {
+        hp: 100,
+        score: 0,
+        level: 1,
+        waveCount: 0, // 擊殺數，每 5 隻進 Boss
+        isBoss: false,
+        bossHP: 3, // Boss 需要打 3 下
+        currentQ: null,
+        pool: []
+    };
+
+    // --- 3. 語音功能 (Text-to-Speech) ---
+    function speak(text) {
+        if ('speechSynthesis' in window) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 0.8; // 稍微放慢語速適合學生
+            utterance.lang = 'en-US';
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
+    // --- 4. 核心邏輯 ---
+
+    function initGame() {
+        document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('end-screen').style.display = 'none';
+        
+        state.hp = 100;
+        state.score = 0;
+        state.level = 1;
+        state.waveCount = 0;
+        state.isBoss = false;
+        
+        updateHUD();
+        resetPool();
+        nextTurn();
+    }
+
+    function resetPool() {
+        state.pool = [...db];
+    }
+
+    function nextTurn() {
+        // 檢查是否死亡
+        if (state.hp <= 0) return gameOver();
+
+        // 檢查是否進入 Boss 戰 (每 4 隻小怪後)
+        if (state.waveCount > 0 && state.waveCount % 4 === 0 && !state.isBoss) {
+            startBossBattle();
+            return;
+        }
+
+        // 普通小怪邏輯
+        state.isBoss = false;
+        document.getElementById('game-container').classList.remove('boss-mode');
+        document.getElementById('boss-hp-bar').style.display = 'none';
+
+        if (state.pool.length === 0) resetPool();
+        
+        const idx = Math.floor(Math.random() * state.pool.length);
+        state.currentQ = state.pool[idx];
+        state.pool.splice(idx, 1);
+
+        renderTurn();
+    }
+
+    function startBossBattle() {
+        state.isBoss = true;
+        state.bossHP = 3; // Reset Boss HP
+        
+        // 視覺切換
+        document.getElementById('game-container').classList.add('boss-mode');
+        document.getElementById('boss-hp-bar').style.display = 'block';
+        updateBossHP();
+
+        // Boss 題目：從所有題目中隨機選，或者用固定的 Boss 題
+        // 為了簡單，這裡我們隨機選一個「難」字，或者直接用隨機題但需要打 3 次
+        // 這裡採用機制：Boss 會連續出題，直到被打死
+        generateBossQuestion();
+    }
+
+    function generateBossQuestion() {
+        // Boss 隨機出一題
+        const randomQ = db[Math.floor(Math.random() * db.length)];
+        state.currentQ = randomQ;
+        renderTurn(true); // true = isBossRender
+    }
+
+    function renderTurn(isBossRender = false) {
+        const q = state.currentQ;
+        
+        // UI 更新
+        const emojiEl = document.getElementById('m-emoji');
+        emojiEl.innerText = isBossRender ? "🐲" : q.emoji;
+        
+        // 如果是 Boss，顯示特殊文字，否則顯示單字
+        document.getElementById('m-word').innerText = q.word;
+        document.getElementById('m-sentence').innerText = q.sentence;
+
+        // 類型標籤
+        const badge = document.getElementById('task-badge');
+        if (q.type === 'syn') {
+            badge.innerText = "Target: SYNONYM (Same)";
+            badge.style.background = "var(--syn-color)";
+        } else {
+            badge.innerText = "Target: ANTONYM (Opposite)";
+            badge.style.background = "var(--ant-color)";
+        }
+
+        // 語音朗讀
+        speak(q.word);
+
+        // 選項生成
+        const box = document.getElementById('options-box');
+        box.innerHTML = '';
+        
+        let choices = [q.answer, ...q.distractors];
+        choices.sort(() => Math.random() - 0.5); // 隨機排序
+
+        choices.forEach(c => {
+            const btn = document.createElement('button');
+            btn.innerText = c;
+            btn.onclick = () => handleInput(c, btn);
+            box.appendChild(btn);
+        });
+    }
+
+    function handleInput(choice, btn) {
+        const isCorrect = (choice === state.currentQ.answer);
+
+        if (isCorrect) {
+            // --- 答對邏輯 ---
+            showFeedback("HIT!", "gold");
+            document.getElementById('m-emoji').classList.add('hit-effect'); // 攻擊特效
+            
+            // 鎖定所有按鈕
+            Array.from(document.querySelectorAll('button')).forEach(b => b.disabled = true);
+
+            if (state.isBoss) {
+                state.bossHP--;
+                updateBossHP();
+                state.score += 200;
+                
+                if (state.bossHP <= 0) {
+                    // Boss Defeated
+                    setTimeout(() => {
+                        state.waveCount++; // 推進波數
+                        state.isBoss = false;
+                        state.level++; // 升級
+                        nextTurn();
+                    }, 1000);
+                } else {
+                    // Boss 受傷但未死，1秒後出下一題
+                    setTimeout(() => {
+                        generateBossQuestion();
+                    }, 1000);
+                }
+            } else {
+                // 普通怪死亡
+                state.score += 100;
+                state.waveCount++;
+                setTimeout(nextTurn, 800);
+            }
+
+        } else {
+            // --- 答錯邏輯 ---
+            state.hp -= 15;
+            showFeedback("MISS!", "red");
+            document.getElementById('stage').classList.add('shake'); // 震動介面
+            btn.style.backgroundColor = "#552222";
+            btn.disabled = true;
+            
+            if (state.hp <= 0) {
+                setTimeout(gameOver, 500);
+            } else {
+                setTimeout(() => {
+                    document.getElementById('stage').classList.remove('shake');
+                }, 500);
+            }
+        }
+        updateHUD();
+    }
+
+    function showFeedback(text, color) {
+        const fb = document.getElementById('feedback');
+        fb.innerText = text;
+        fb.style.color = color;
+        fb.style.display = 'block';
+        setTimeout(() => { fb.style.display = 'none'; }, 500);
+    }
+
+    function updateHUD() {
+        document.getElementById('score-num').innerText = state.score;
+        document.getElementById('level-num').innerText = state.level;
+        document.getElementById('player-hp').style.width = state.hp + "%";
+    }
+
+    function updateBossHP() {
+        const fill = document.getElementById('boss-hp-fill');
+        const pct = (state.bossHP / 3) * 100;
+        fill.style.width = pct + "%";
+    }
+
+    function gameOver() {
+        document.getElementById('end-screen').style.display = 'flex';
+        document.getElementById('final-score').innerText = state.score;
+    }
+
+</script>
+</body>
+</html>
